@@ -102,6 +102,7 @@ compExpr (Lambda ns e) = do
     put_frames (ns : fs)
     tellCur (LABEL label)
     compExpr e
+    tellCur RTN
     return ((), \(cur, later) -> ([], cur ++ later))
 
   put_frames fs
