@@ -12,17 +12,13 @@ data BinOp = Add
            | Gt
            | Gte
 
-data Expr = IntVal LI.Number -- new int
-          | BinOp BinOp Expr Expr -- binary op on ints
-          | Var Name -- a variable
-          | Cons Expr Expr -- (a, b)
-          | Car Expr -- let (a, _) in a // fst
-          | Cdr Expr -- let (_, b) in b // snd
+data Expr = IntVal LI.Number          -- [0-9]+
+          | BinOp BinOp Expr Expr     -- e1 <binop> e2
+          | Var Name                  -- [a-zA-Z][a-zA-Z0-9_]*
+          | Cons Expr Expr            -- (a, b)
+          | Car Expr                  -- fst e
+          | Cdr Expr                  -- snd e
           | IfThenElse Expr Expr Expr -- if x then y else z
-          | Let Name Expr Expr -- let x = y in z
-          | CallFun Name [Var] -- f(a, b, ...)
-          | LowLevel LI.Instr -- <low level instruction> 
-
-data Fun = FunDef Name [Var] Expr
-
-type Super = [Fun]
+          | Let Name Expr Expr        -- let x = y in z
+          | CallFun Expr [Expr]       -- e0 (e1, e2, e3)
+          | Lambda [Var] Expr         -- \x y z -> e
