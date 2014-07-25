@@ -28,7 +28,7 @@ data Instr = LDC Number      -- load constant
            | LDF Addr        -- load function
            | AP ArgCount     -- call function
            | RTN
-           | DUM
+           | DUM ArgCount
            | RAP ArgCount
            | STOP
 
@@ -43,3 +43,4 @@ data Instr = LDC Number      -- load constant
              -- Debug extension
            | DBUG
            | BRK
+           deriving (Show, Eq)
