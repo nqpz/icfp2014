@@ -1,5 +1,6 @@
 module Main where
 
+import System.Environment
 import SuperComp
 import LambdaPrint
 import LambdaInstrs
@@ -10,7 +11,8 @@ run = putStrLn . printer . runExpr
 runP = putStrLn . printer. fixLabels . runExpr
 
 main :: IO ()
-main = do prg <- parseFile "test.sl"
+main = do args <- getArgs
+          prg <- parseFile (head args)
           case prg of
             Left e    -> putStrLn $ show e
             Right prg -> runP prg
