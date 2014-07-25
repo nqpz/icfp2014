@@ -38,13 +38,11 @@ compBinop Eq    = tellCur CEQ
 compBinop Gt    = tellCur CGT
 compBinop Gte   = tellCur CGTE
 compBinop Cons  = tellCur CONS
-compBinop Print = tellCur DBUG
 
 compUnop :: UnOp -> CompMonad ()
 compUnop Car   = tellCur CAR
 compUnop Cdr   = tellCur CDR
 compUnop Atom  = tellCur ATOM
-compUnop Break = tellCur BRK
 
 findVar :: Name -> CompMonad (Int, Int)
 findVar s = findVar' 0 =<< get_frames
@@ -54,14 +52,22 @@ findVar s = findVar' 0 =<< get_frames
             Just n' -> return (n, n')
             Nothing -> findVar' (n+1) fs
 
+compStmt :: Stmt -> CompMonad ()
+compStmt (Print e)   = compExpr e >> tellCur DBUG
+compStmt Break       = tellCur BRK
+compStmt (Store n e) = do
+  compExpr e
+  pos <- findVar n
+  tellCur (LD pos)
+
 compExpr :: Expr -> CompMonad ()
-compExpr (IntVal n)          = tellCur (LDC n)
-compExpr (BinOp Print e1 e2) = compExpr e1 >> tellCur DBUG >> compExpr e2
-compExpr (BinOp op e1 e2)    = compExpr e1 >> compExpr e2 >> compBinop op
-compExpr (UnOp op e)         = compExpr e  >> compUnop op
+compExpr (IntVal n)        = tellCur (LDC n)
+compExpr (Seq s e)         = compStmt s  >> compExpr e
+compExpr (BinOp op e1 e2)  = compExpr e1 >> compExpr e2 >> compBinop op
+compExpr (UnOp op e)       = compExpr e  >> compUnop op
 compExpr (Var n)    = do
-  (enum, eoff) <- findVar n
-  tellCur (LD (enum, eoff))
+  pos <- findVar n
+  tellCur (LD pos)
 compExpr (IfThenElse e0 eT eF) = do
   lT <- fresh_label "true"
   lF <- fresh_label "false"

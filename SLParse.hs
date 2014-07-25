@@ -13,6 +13,9 @@ import SuperLambda
 
 type Error = ParseError
 
+parse' :: Parser a -> String -> Either Error a
+parse' p s = parse p "" s
+
 parseString :: String -> Either Error Program
 parseString = parse parseProgram ""
 
@@ -24,7 +27,7 @@ parseFile file =
 parseProgram :: Parser Program
 parseProgram = do fs <- many parseFun
                   symbol "##"
-                  expr <- parseExpr <* eof
+                  expr <- parseStmt <* eof
                   return $ Let (map trans fs) expr
     where
         trans :: Fun -> (Name, Expr)
@@ -35,22 +38,47 @@ parseFun = do
   id <- parseVar
   args <- parens $ commaSep1 parseVar
   symbol "="
-  expr <- parseExpr
+  expr <- parseStmt
   return $ FunDef id args expr
 
 parseDecl :: Parser (Name, Expr)
 parseDecl = do
   id <- parseVar
-  spaces
   symbol "="
-  expr <- parseExpr
+  expr <- parseStmt
   return $ (id, expr)
 
+parseStmt :: Parser Expr
+parseStmt = do
+  key <- eatKeyword ["print", "break"]
+  case key of
+    Nothing -> parseStmt1
+    Just "print" -> do
+      e <- parseExpr
+      symbol ";"
+      Seq (Print e) <$> parseStmt
+    Just "break" -> do
+      symbol ";"
+      Seq Break <$> parseStmt
+
+parseStmt1 :: Parser Expr
+parseStmt1 = do
+  e <- parseExpr
+  case e of
+    Var n -> do
+      assign <- (char '=' >> spaces >> return True) <|> return False
+      case assign of
+        False -> return e
+        True  -> do
+          e1 <- parseExpr
+          symbol ";"
+          Seq (Store n e1) <$> parseStmt
+    _ -> return e
 
 parseExpr :: Parser Expr
 parseExpr = do
   e <- parseExpr1
-  next <- (Just <$> choice (map (try . string) ["<", ">", "==", "<=", ">=", "=<", "=>", "!="]) <* spaces) <|> return Nothing
+  next <- choice' ["==", "<=", ">=", "=<", "=>", "!=", ">", "<"]
   case next of
     Just "<"  -> BinOp Gt  <$> parseExpr <*> return e
     Just ">"  -> BinOp Gt  <$> return e  <*> parseExpr
@@ -76,7 +104,7 @@ parseExpr1 = do
 parseExpr2 :: Parser Expr
 parseExpr2 = do
   e <- parseExpr3
-  next <- (Just <$> oneOf "*/" <* spaces)  <|> return Nothing
+  next <- try (Just <$> (oneOf "*/" <* spaces)) <|> return Nothing
   case next of
     Just '*' -> BinOp Mul e <$> parseExpr2
     Just '/' -> BinOp Div e <$> parseExpr2
@@ -84,29 +112,24 @@ parseExpr2 = do
 
 parseExpr3 :: Parser Expr
 parseExpr3 = do
-  next <- try (Just <$> choice (map string keywords) <* spaces) <|> return Nothing
-  case next of
+  keyword <- eatKeyword ["if", "let", "fst", "snd", "atom"]
+  case keyword of
     Nothing -> parseExpr4
     Just "if" -> do
-      e1 <- parseExpr
+      e1 <- parseStmt
       symbol "then"
-      e2 <- parseExpr
+      e2 <- parseStmt
       symbol "else"
-      e3 <- parseExpr
+      e3 <- parseStmt
       return $ IfThenElse e1 e2 e3
     Just "let" -> do
       decls <- many1 parseDecl
       symbol "in"
-      expr <- parseExpr
+      expr <- parseStmt
       return $ Let decls expr
     Just "fst"   -> UnOp Car    <$> parseExpr3
     Just "snd"   -> UnOp Cdr    <$> parseExpr3
     Just "atom"  -> UnOp Atom   <$> parseExpr3
-    Just "print" -> BinOp Print <$> parseExpr <*> (symbol ";" >> parseExpr)
-    Just "break" -> UnOp Break  <$> (symbol ";" >> parseExpr)
-
-
-keywords = ["if", "let", "fst", "snd", "atom", "print", "break"]
 
 parseExpr4 :: Parser Expr
 parseExpr4 = do
@@ -114,7 +137,7 @@ parseExpr4 = do
   if next
     then do args <- parseVar `endBy` (symbol " ")
             symbol "->"
-            expr <- parseExpr
+            expr <- parseStmt
             return $ Lambda args expr
     else parseExpr5
 
@@ -145,19 +168,31 @@ parseTuple = do
   return (foldr1 (BinOp Cons) exprs)
 
 parseExprs :: Parser [Expr]
-parseExprs = parens (commaSep1 parseExpr) <* spaces
+parseExprs = parens (commaSep1 parseStmt) <* spaces
 
 -- Helper functions
+
+eatKeyword :: [String] -> Parser (Maybe String)
+eatKeyword keywords = do
+  s <- lookAhead (Just <$> many1 letter) <|> return Nothing
+  case s of
+    Nothing -> return Nothing
+    Just s  -> if s `elem` keywords
+               then many1 letter >> spaces >> return (Just s)
+               else return Nothing
+
+choice' :: [String] -> Parser (Maybe String)
+choice' s = (Just <$> choice (map symbol s)) <|> return Nothing
 
 commaSep p  = p `sepBy` (symbol ",")
 commaSep1 p = p `sepBy1` (symbol ",")
 
 parens = between (symbol "(") (symbol ")")
 
-symbol :: String -> Parser ()
-symbol s = do string s
+symbol :: String -> Parser String
+symbol s = do try (string s)
               spaces
-              return ()
+              return s
 
 
 word :: Parser String
