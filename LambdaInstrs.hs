@@ -4,13 +4,15 @@ import Data.Int
 
 type Number    = Int32
 type Label     = String
-data Addr      = Abs Int | Lab Label
-    deriving (Show, Eq)
+data Addr      = Abs Int | Lab Label deriving (Eq)
 type EnvNum    = Int
 type EnvOffset = Int
 type EnvRef    = (EnvNum, EnvOffset)
 type ArgCount  = Int
 
+instance Show Addr where
+  show (Abs n) = show n
+  show (Lab s) = s
 
 data Instr = LDC Number      -- load constant
            | LD EnvRef       -- load environment
