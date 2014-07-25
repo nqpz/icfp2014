@@ -21,8 +21,9 @@ data Expr = IntVal LM.Number
           | Popped -- take from data stack
 
 data Instr = LMInstr LM.Instr -- base instruction
-           | IfThenElseCall Expr [Instr] [Instr]
+           | IfThenElse Expr [Instr] [Instr] -- conditional
            | Let Arg Expr -- make a variable and set its value
            | FunDef Name [Arg] [Instr] -- a function
            | CallFun Name [Arg] -- call a function
            | ArraySet Arg Int Expr -- set array value
+           | Return Expr -- return value
