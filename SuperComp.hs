@@ -93,6 +93,8 @@ compExpr (Lambda ns e) = do
   label <- fresh_label "lambda"
   fs <- get_frames
 
+  tellCur (LDF (Lab label))
+
   pass $ do
     put_frames (ns : fs)
     tellCur (LABEL label)
@@ -105,7 +107,7 @@ runComp :: CompMonad () -> [Instr]
 runComp m =
   let s  = execWriterT m :: State CompState ([Instr], [Instr])
       (cur, later) = evalState s ([["world", "ghosts"]], 0)
-  in cur ++ later
+  in cur ++ [RTN] ++ later
 
 runExpr :: Expr -> [Instr]
 runExpr  = runComp . compExpr

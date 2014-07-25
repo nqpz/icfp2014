@@ -1,4 +1,4 @@
-module LambaPrint (fixLabels, printer) where
+module LambdaPrint (fixLabels, printer) where
 
 import LambdaInstrs
 
@@ -15,7 +15,7 @@ findLabels n (LABEL s : is) =
   let (is', labels) = findLabels n is
   in (is', (s, n) : labels)
 findLabels n (i : is) =
-  let (is', labels) = findLabels n is
+  let (is', labels) = findLabels (n+1) is
   in (i : is', labels)
 
 unLab :: LabelMap -> Addr -> Addr
