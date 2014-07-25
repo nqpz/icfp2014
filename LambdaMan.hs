@@ -1,60 +1,30 @@
+{-# LANGUAGE RankNTypes #-}
 import Control.Monad.Reader
 import Control.Monad.State
-import Safe
-import Data.Int
+import Safe (atMay)
 
-type Number    = Int32
-type Addr      = Int
-type EnvNum    = Int
-type EnvOffset = Int
-type EnvRef    = (EnvNum, EnvOffset)
-type ArgCount  = Int
+import LambdaInstrs
 
 -- These are the values on the %s stack, that is the data stack
 data SValue = SInt     Number
             | SCons    SValue SValue
-            | SClosure Addr EStack
+            | SClosure Addr EStackIds
 type SStack = [SValue]
 
 -- These are the values on the %d stack, that is the control stack
 data DValue = DJoin     Addr
-            | DRet      Addr EStack
+            | DRet      Addr EStackIds
             | DStop
 type DStack = [DValue]
 
 -- These are the values on the %e "stack" -- the environment
-type EValue = [SValue]
-type EStack = [EValue]
-
-
-data Instr = LDC Number      -- load constant
-           | LD EnvRef       -- load environment
-           | ADD
-           | SUB
-           | MUL
-           | DIV
-           | CEQ             -- compare equal
-           | CGT             -- compare greater
-           | CGTE            -- compare greater equal
-           | ATOM            -- is top a number?
-           | CONS
-           | CAR
-           | CDR
-           | SEL Addr Addr   -- conditional branch
-           | JOIN            -- return from conditional branch
-           | LDF Addr        -- load function
-           | AP ArgCount     -- call function
-           | RTN
-           | DUM
-           | RAP ArgCount
-           | STOP
-
-             -- Extensions
-           | TSEL Addr Addr
-           | TAP Addr Addr
+type EValue     = [SValue]
+type EStackIds  = [Int]
+type EStackVals = [EValue]
+type EStack     = (EStackIds, EStackVals)
 
 type MachineState = (SStack, DStack, EStack, Addr)
-type InstrMonad a = ReaderT [Instr]  (State MachineState) a
+type InstrMonad a = ReaderT [Instr] (State MachineState) a
 
 push_s :: SValue -> InstrMonad ()
 push_d :: DValue -> InstrMonad ()
@@ -65,13 +35,11 @@ push_s v = do (s, d, e, c) <- get
 push_d v = do (s, d, e, c) <- get
               put (s, v : d, e, c)
 
-push_e v = do (s, d, e, c) <- get
-              put (s, d, v : e, c)
-
+push_e v = do (s, d, (ei, ev), c) <- get
+              put (s, d, (length ev : ei, v : ev), c)
 
 pop_s :: InstrMonad SValue
 pop_d :: InstrMonad DValue
-pop_e :: InstrMonad EValue
 pop_s = do (s, d, e, c) <- get
            case s of
              v : s' -> put (s', d, e, c) >> return v
@@ -82,28 +50,27 @@ pop_d = do (s, d, e, c) <- get
             v : d' -> put (s, d', e, c) >> return v
             []     -> fail "Empty %d"
 
-pop_e = do (s, d, e, c) <- get
-           case e of
-             v : e' -> put (s, d, e', c) >> return v
-             []     -> fail "Empty %d"
+pop_args :: ArgCount -> InstrMonad EValue
+pop_args 0 = return []
+pop_args n = do vs <- pop_args (n-1)
+                v <- pop_s
+                return (v : vs)
 
-peek_s :: InstrMonad (Maybe SValue)
-peek_d :: InstrMonad (Maybe DValue)
-peek_e :: InstrMonad (Maybe EValue)
-peek_s = do (s, _, _, _) <- get
-            case s of
-              v : _ -> return (Just v)
-              []    -> return Nothing
+get_s :: InstrMonad SStack
+get_d :: InstrMonad DStack
+get_s = do (s, _, _, _) <- get
+           return s
 
-peek_d = do (_, d, _, _) <- get
-            case d of
-              v : _ -> return (Just v)
-              []    -> return Nothing
+get_d = do (_, d, _, _) <- get
+           return d
 
-peek_e = do (_, _, e, _) <- get
-            case e of
-              v : _ -> return (Just v)
-              []    -> return Nothing
+get_e :: InstrMonad EStack
+get_e = do (_, _, e, _) <- get
+           return e
+
+put_e :: EStack -> InstrMonad ()
+put_e e = do (s, d, _, c) <- get
+             put (s, d, e, c)
 
 binop :: (Number -> Number -> Number) -> InstrMonad ()
 binop op = do v1 <- pop_s
@@ -112,18 +79,27 @@ binop op = do v1 <- pop_s
                 (SInt n1, SInt n2) -> push_s (SInt (op n1 n2))
                 _                  -> fail "binop, but top of stack was not ints"
 
+get_c :: InstrMonad Addr
+get_c = do (_, _, _, c) <- get
+           return c
+
+put_c :: Addr -> InstrMonad ()
+put_c c = do (s, d, e, _) <- get
+             put (s, d, e, c)
+
 get_instr_at :: Addr -> InstrMonad Instr
 get_instr_at a = do mem <- ask
                     case atMay mem (fromIntegral a) of
                       Just i  -> return i
                       Nothing -> fail "Memory out of bounds"
 
-get_instr :: InstrMonad Instr
-get_instr = do (_, _, _, c) <- get
-               get_instr_at c
+fetch_instr :: InstrMonad Instr
+fetch_instr = do c <- get_c
+                 put_c (c + 1)
+                 get_instr_at c
 
 stepInstr :: InstrMonad ()
-stepInstr = stepInstr' =<< get_instr
+stepInstr = stepInstr' =<< fetch_instr
 
 stepInstr' :: Instr -> InstrMonad ()
 stepInstr' (LDC n) = push_s (SInt n)
@@ -134,19 +110,58 @@ stepInstr' DIV     = binop div
 stepInstr' CEQ     = binop (\x y -> if x == y then 1 else 0)
 stepInstr' CGT     = binop (\x y -> if x > y  then 1 else 0)
 stepInstr' CGTE    = binop (\x y -> if x >= y then 1 else 0)
-stepInstr' ATOM    =
+
+stepInstr' ATOM =
   do v <- pop_s
      case v of
        SInt _ -> push_s (SInt 1)
        _      -> push_s (SInt 0)
-stepInstr' CONS    =
+
+stepInstr' CONS =
   do v1 <- pop_s
      v2 <- pop_s
      push_s (SCons v1 v2)
--- stepInstr' CAR     =
---   do v <- pop_s
---      case v of
 
---      v2 <- pop_s
---      push_s (SCons v1 v2)
-stepInstr' _       = fail "Not implemented"
+stepInstr' CAR =
+  do v <- pop_s
+     case v of
+       SCons v1 _ -> push_s v1
+       _          -> fail "Expected cons in CAR operator"
+
+stepInstr' CDR =
+  do v <- pop_s
+     case v of
+       SCons _ v2 -> push_s v2
+       _          -> fail "Expected cons in CDR operator"
+
+stepInstr' (SEL t f) =
+  do v <- pop_s
+     case v of
+       SInt n -> do c <- get_c
+                    push_d (DJoin c)
+                    if n == 0 then put_c f else put_c t
+       _      -> fail "Expected int in SEL"
+
+stepInstr' JOIN =
+  do v <- pop_d
+     case v of
+       DJoin c -> put_c c
+       _       -> fail "Expected join in SEL"
+
+stepInstr' (LDF a) =
+  do (ei, _) <- get_e
+     push_s (SClosure a ei)
+
+stepInstr' (AP n) =
+  do v <- pop_s
+     case v of
+       SClosure f ei' -> do
+         (ei, ev) <- get_e
+         ev' <- pop_args n
+         c <- get_c
+
+         put_e (length ev : ei', ev ++ [ev'])
+         push_d (DRet c ei)
+       _ -> fail "AP expects closure"
+
+stepInstr' _ = fail "Unimplemented instruction"
