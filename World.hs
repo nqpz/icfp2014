@@ -1,5 +1,6 @@
-import Data.List (intercalate)
+module World where
 
+import Data.List (intercalate)
 
 -- Encodings:
 -- Health status:
@@ -11,6 +12,7 @@ data Direction = Up | Right | Down | Left
 type Score = Int
 type Location = (Int, Int)
 data Tile = Wall | Empty | Pill | Power | Fruit | Lambda | Ghost
+    deriving (Eq, Show, Ord)
 
 -- Encoded map
 newtype Map = Map [[Tile]]
@@ -29,7 +31,12 @@ instance Show Map where
                         Lambda  -> "\\"
                         Ghost   -> "="
 
-type LambdaManStatus = (Health, Location, Direction, Lives, Score)
+data LambdaManStatus = Man { health    :: Health
+                       , location  :: Location
+                       , direction :: Direction
+                       , lives     :: Lives
+                       , score     :: Score
+                       }
 
 -- List of all ghosts
 type GhostStatus = [(Health, Location, Direction)]
@@ -38,3 +45,7 @@ type GhostStatus = [(Health, Location, Direction)]
 -- 0: no fruit present
 -- n: n ticks left of fruit being present
 type FruitLocationStatus = Int
+
+
+-- Combined world encoding
+newtype World = World (Map, LambdaManStatus, GhostStatus, FruitLocationStatus)
