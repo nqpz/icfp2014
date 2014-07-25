@@ -3,20 +3,21 @@
 import qualified LambdaMan as LM
 
 newtype Name = Name String
+newtype Arg = Arg String
 
 data BinOp = Add
            | Sub
            | Mul
            | Div
 
-data Expr = IntVal LM.Number
-          | ArrayVal Int -- length of array
+data Expr = IntVal LM.Number -- new int
+          | ArrayVal Int -- new array with a length
           | Index Int Expr -- take from array
-          | BinOp BinOp Expr Expr
-          | Arg String -- name of variable
-          | Cons Expr Expr
-          | Car Expr
-          | Cdr Expr
+          | BinOp BinOp Expr Expr -- binary op on ints
+          | Var String -- a variable
+          | Cons Expr Expr -- create tuple
+          | Car Expr -- get from tuple
+          | Cdr Expr -- get second from tuple
           | FunName Name -- function pointer
           | Popped -- take from data stack
 
