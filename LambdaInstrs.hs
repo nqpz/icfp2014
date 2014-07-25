@@ -3,7 +3,8 @@ module LambdaInstrs where
 import Data.Int
 
 type Number    = Int32
-data Addr      = Abs Int | Lab String
+type Label     = String
+data Addr      = Abs Int | Lab Label
 type EnvNum    = Int
 type EnvOffset = Int
 type EnvRef    = (EnvNum, EnvOffset)
