@@ -1,4 +1,3 @@
-
 data Arg = Const Int | Reg String | Mem String
 data Instr = Mov Reg Reg
            | INC Reg
@@ -15,3 +14,10 @@ data Instr = Mov Reg Reg
            | JGT Reg Reg
            | INT Int
            | HLT
+
+
+-- Data flow analysis:
+-- Init: Mem = [0, 0, ... , 0], a = b = 0.
+-- Update:
+--    
+--  
