@@ -13,11 +13,13 @@ data BinOp = Add
            | Gte
            | Cons
            | Print
+    deriving (Show, Eq)
 
 data UnOp = Car
           | Cdr
           | Atom
           | Break
+    deriving (Show, Eq)
 
 data Expr = IntVal LI.Number          -- [0-9]+
           | Var Name                  -- [a-zA-Z][a-zA-Z0-9_]*
@@ -29,3 +31,7 @@ data Expr = IntVal LI.Number          -- [0-9]+
                                       -- in x + z
           | CallFun Expr [Expr]       -- e0 (e1, e2, e3)
           | Lambda [Name] Expr         -- \x y z -> e
+    deriving (Show, Eq)
+
+type Program = Expr
+data Fun = FunDef Name [Name] Expr
