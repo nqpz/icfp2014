@@ -21,7 +21,6 @@ data Expr = IntVal LI.Number          -- [0-9]+
           | Var Name                  -- [a-zA-Z][a-zA-Z0-9_]*
           | BinOp BinOp Expr Expr     -- e1 <binop> e2  OR   (e1, e2)
           | UnOp UnOp Expr            -- {fst,snd,atom} e
-          | Atom Expr                 -- atom e
           | IfThenElse Expr Expr Expr -- if x then y else z
           | Let [(Name, Expr)] Expr   -- let x = y
                                       -- let z = p

@@ -5,6 +5,7 @@ import Data.Int
 type Number    = Int32
 type Label     = String
 data Addr      = Abs Int | Lab Label
+    deriving (Show, Eq)
 type EnvNum    = Int
 type EnvOffset = Int
 type EnvRef    = (EnvNum, EnvOffset)
