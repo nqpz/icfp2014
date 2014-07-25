@@ -11,14 +11,20 @@ data BinOp = Add
            | Eq
            | Gt
            | Gte
+           | Cons
+
+data UnOp = Car
+          | Cdr
+          | Atom
 
 data Expr = IntVal LI.Number          -- [0-9]+
-          | BinOp BinOp Expr Expr     -- e1 <binop> e2
           | Var Name                  -- [a-zA-Z][a-zA-Z0-9_]*
-          | Cons Expr Expr            -- (a, b)
-          | Car Expr                  -- fst e
-          | Cdr Expr                  -- snd e
+          | BinOp BinOp Expr Expr     -- e1 <binop> e2  OR   (e1, e2)
+          | UnOp UnOp Expr            -- {fst,snd,atom} e
+          | Atom Expr                 -- atom e
           | IfThenElse Expr Expr Expr -- if x then y else z
-          | Let Name Expr Expr        -- let x = y in z
+          | Let [(Name, Expr)] Expr   -- let x = y
+                                      -- let z = p
+                                      -- in x + z
           | CallFun Expr [Expr]       -- e0 (e1, e2, e3)
-          | Lambda [Var] Expr         -- \x y z -> e
+          | Lambda [Name] Expr         -- \x y z -> e
