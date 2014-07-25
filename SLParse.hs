@@ -151,7 +151,14 @@ parseExpr5 = do
     else return e
 
 parseExpr6 :: Parser Expr
-parseExpr6 = (IntVal <$> parseVal) <|> (Var <$> parseVar) <|> parseTuple
+parseExpr6 = do
+  next <- (char '-' >> return True) <|> return False
+  if next
+  then BinOp Sub (IntVal 0) <$> parseExpr7
+  else parseExpr7
+
+parseExpr7 :: Parser Expr
+parseExpr7 = (IntVal <$> parseVal) <|> (Var <$> parseVar) <|> parseTuple
 
 parseVar :: Parser String
 parseVar = try $ do
