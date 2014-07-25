@@ -104,7 +104,7 @@ compExpr (Lambda ns e) = do
 runComp :: CompMonad () -> [Instr]
 runComp m =
   let s  = execWriterT m :: State CompState ([Instr], [Instr])
-      (cur, later) = evalState s ([["world", "ghosts"], 0)
+      (cur, later) = evalState s (["world", "ghosts"], 0)
   in cur ++ later
 
 runExpr :: Expr -> [Instr]
