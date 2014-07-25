@@ -12,15 +12,17 @@ data BinOp = Add
            | Gt
            | Gte
            | Cons
+           | Print
 
 data UnOp = Car
           | Cdr
           | Atom
+          | Break
 
 data Expr = IntVal LI.Number          -- [0-9]+
           | Var Name                  -- [a-zA-Z][a-zA-Z0-9_]*
-          | BinOp BinOp Expr Expr     -- e1 <binop> e2  OR   (e1, e2)
-          | UnOp UnOp Expr            -- {fst,snd,atom} e
+          | BinOp BinOp Expr Expr     -- e1 <binop> e2   OR   (e1, e2)   OR   print e1 >> e2
+          | UnOp UnOp Expr            -- {fst,snd,atom} e                OR   break >> e
           | IfThenElse Expr Expr Expr -- if x then y else z
           | Let [(Name, Expr)] Expr   -- let x = y
                                       -- let z = p

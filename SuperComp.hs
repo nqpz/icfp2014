@@ -30,19 +30,21 @@ tellCur   i = tell ([i], [])
 tellLater i = tell ([], [i])
 
 compBinop :: BinOp -> CompMonad ()
-compBinop Add  = tellCur ADD
-compBinop Sub  = tellCur SUB
-compBinop Mul  = tellCur MUL
-compBinop Div  = tellCur DIV
-compBinop Eq   = tellCur CEQ
-compBinop Gt   = tellCur CGT
-compBinop Gte  = tellCur CGTE
-compBinop Cons = tellCur CONS
+compBinop Add   = tellCur ADD
+compBinop Sub   = tellCur SUB
+compBinop Mul   = tellCur MUL
+compBinop Div   = tellCur DIV
+compBinop Eq    = tellCur CEQ
+compBinop Gt    = tellCur CGT
+compBinop Gte   = tellCur CGTE
+compBinop Cons  = tellCur CONS
+compBinop Print = tellCur DBUG
 
 compUnop :: UnOp -> CompMonad ()
-compUnop Car  = tellCur CAR
-compUnop Cdr  = tellCur CDR
-compUnop Atom = tellCur ATOM
+compUnop Car   = tellCur CAR
+compUnop Cdr   = tellCur CDR
+compUnop Atom  = tellCur ATOM
+compUnop Break = tellCur BRK
 
 findVar :: Name -> CompMonad (Int, Int)
 findVar s = findVar' 0 =<< get_frames
@@ -85,6 +87,7 @@ compExpr (Let binds e2) = do
   tellCur (LDF (Lab label))
   tellCur (TRAP (length names))
   tellCur (LABEL label)
+  compExpr e2
 compExpr (CallFun eF eArgs) = do
   mapM compExpr eArgs
   compExpr eF

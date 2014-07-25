@@ -37,9 +37,9 @@ printer :: [Instr] -> String
 printer = unlines . map printer'
 
 printer' :: Instr -> String
-printer' (LD  (a, b)) = "LD "   ++ show a ++ ", " ++ show b
-printer' (ST  (a, b)) = "ST "   ++ show a ++ ", " ++ show b
-printer' (SEL  a  b)  = "SEL "  ++ show a ++ ", " ++ show b
-printer' (TSEL a  b)  = "TSEL " ++ show a ++ ", " ++ show b
+printer' (LD  (a, b)) = "LD "   ++ show a ++ " " ++ show b
+printer' (ST  (a, b)) = "ST "   ++ show a ++ " " ++ show b
+printer' (SEL  a  b)  = "SEL "  ++ show a ++ " " ++ show b
+printer' (TSEL a  b)  = "TSEL " ++ show a ++ " " ++ show b
 printer' (LABEL s    ) = s ++ ":"
 printer' i             = show i
