@@ -55,9 +55,10 @@ findVar s = findVar' 0 =<< get_frames
             Nothing -> findVar' (n+1) fs
 
 compExpr :: Expr -> CompMonad ()
-compExpr (IntVal n)       = tellCur (LDC n)
-compExpr (BinOp op e1 e2) = compExpr e2 >> compExpr e1 >> compBinop op
-compExpr (UnOp op e)      = compExpr e  >> compUnop op
+compExpr (IntVal n)          = tellCur (LDC n)
+compExpr (BinOp Print e1 e2) = compExpr e1 >> tellCur DBUG >> compExpr e2
+compExpr (BinOp op e1 e2)    = compExpr e1 >> compExpr e2 >> compBinop op
+compExpr (UnOp op e)         = compExpr e  >> compUnop op
 compExpr (Var n)    = do
   (enum, eoff) <- findVar n
   tellCur (LD (enum, eoff))

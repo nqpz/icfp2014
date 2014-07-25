@@ -34,4 +34,4 @@ data Expr = IntVal LI.Number          -- [0-9]+
     deriving (Show, Eq)
 
 type Program = Expr
-data Fun = FunDef Name [Name] Expr
+data Fun = FunDef Name [Name] Expr deriving (Eq, Show)

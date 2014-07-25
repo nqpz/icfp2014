@@ -1,4 +1,5 @@
-module SLParse (parseString, parseFile, Error) where
+-- module SLParse (parseString, parseFile, Error, parse, parseFun) where
+module SLParse where
 
 import Data.Char
 import Data.Int
@@ -22,108 +23,142 @@ parseFile file =
 
 parseProgram :: Parser Program
 parseProgram = do fs <- many parseFun
-                  symbol "--"
+                  symbol "##"
                   expr <- parseExpr <* eof
                   return $ Let (map trans fs) expr
     where
         trans :: Fun -> (Name, Expr)
         trans (FunDef id args body) = (id, Lambda args body)
 
-parseExpr :: Parser Expr
-parseExpr = exp1
-    where
-        exp1 = ((try call) <|> ifte <|> letv <|> lambda <|> exp2) <* spaces
-        exp2 =(try val) <|> (try varr) <|> unop
-        ifte = do symbol "if"
-                  e1 <- parseExpr
-                  symbol "then"
-                  e2 <- parseExpr
-                  symbol "else"
-                  e3 <- parseExpr
-                  return $ IfThenElse e1 e2 e3
-
-        decl = do id <- var
-                  spaces
-                  symbol "="
-                  expr <- parseExpr
-                  return $ (id, expr)
-
-        letv = do symbol "let"
-                  decls <- many1 decl
-                  symbol "in"
-                  expr <- exp1
-                  return $ Let decls expr
-
-        call = do id <- exp2
-                  args <- parens $ commaSep parseExpr
-                  return $ CallFun id args
-
-        varr = do id <- var
-                  return $ Var id
-
-        val  = do num <- parseInt32
-                  return $ IntVal num
-
-        lambda = parens $ innerLambda
-
-        unop = car <|> cdr <|> atom
-        car = do symbol "fst"
-                 expr <- exp1
-                 return $ UnOp Car expr
-        cdr = do symbol "snd"
-                 expr <- exp1
-                 return $ UnOp Cdr expr
-        atom = do symbol "atom"
-                  expr <- exp1
-                  return $ UnOp Atom expr
-
-        innerLambda = do symbol "\\"
-                         args <- var `endBy1` (symbol " ")
-                         symbol "->"
-                         expr <- parseExpr
-                         return $ Lambda args expr
-
-
-
 parseFun :: Parser Fun
-parseFun = do id <- var
-              args <- parens $ commaSep1 var
-              spaces
-              symbol "="
-              expr <- parseExpr
-              return $ FunDef id args expr
+parseFun = do
+  id <- parseVar
+  args <- parens $ commaSep1 parseVar
+  symbol "="
+  expr <- parseExpr
+  return $ FunDef id args expr
 
+parseDecl :: Parser (Name, Expr)
+parseDecl = do
+  id <- parseVar
+  spaces
+  symbol "="
+  expr <- parseExpr
+  return $ (id, expr)
+
+
+parseExpr :: Parser Expr
+parseExpr = do
+  e <- parseExpr1
+  next <- (Just <$> choice (map (try . string) ["<", ">", "==", "<=", ">=", "=<", "=>", "!="]) <* spaces) <|> return Nothing
+  case next of
+    Just "<"  -> BinOp Gt  <$> parseExpr <*> return e
+    Just ">"  -> BinOp Gt  <$> return e  <*> parseExpr
+    Just "<=" -> BinOp Gte <$> parseExpr <*> return e
+    Just "=<" -> BinOp Gte <$> parseExpr <*> return e
+    Just ">=" -> BinOp Gte <$> return e  <*> parseExpr
+    Just "=>" -> BinOp Gte <$> return e  <*> parseExpr
+    Just "==" -> BinOp Eq  <$> return e  <*> parseExpr
+    Just "!=" -> do
+      e1 <- parseExpr
+      return $ BinOp Eq (IntVal 0) (BinOp Eq e e1)
+    Nothing  -> return e
+
+parseExpr1 :: Parser Expr
+parseExpr1 = do
+  e <- parseExpr2
+  next <- (Just <$> oneOf "+-" <* spaces)  <|> return Nothing
+  case next of
+    Just '+' -> BinOp Add e <$> parseExpr1
+    Just '-' -> BinOp Sub e <$> parseExpr1
+    Nothing  -> return e
+
+parseExpr2 :: Parser Expr
+parseExpr2 = do
+  e <- parseExpr3
+  next <- (Just <$> oneOf "*/" <* spaces)  <|> return Nothing
+  case next of
+    Just '*' -> BinOp Mul e <$> parseExpr2
+    Just '/' -> BinOp Div e <$> parseExpr2
+    Nothing  -> return e
+
+parseExpr3 :: Parser Expr
+parseExpr3 = do
+  next <- try (Just <$> choice (map string keywords) <* spaces) <|> return Nothing
+  case next of
+    Nothing -> parseExpr4
+    Just "if" -> do
+      e1 <- parseExpr
+      symbol "then"
+      e2 <- parseExpr
+      symbol "else"
+      e3 <- parseExpr
+      return $ IfThenElse e1 e2 e3
+    Just "let" -> do
+      decls <- many1 parseDecl
+      symbol "in"
+      expr <- parseExpr
+      return $ Let decls expr
+    Just "fst"   -> UnOp Car    <$> parseExpr3
+    Just "snd"   -> UnOp Cdr    <$> parseExpr3
+    Just "atom"  -> UnOp Atom   <$> parseExpr3
+    Just "print" -> BinOp Print <$> parseExpr <*> (symbol ";" >> parseExpr)
+    Just "break" -> UnOp Break  <$> (symbol ";" >> parseExpr)
+
+
+keywords = ["if", "let", "fst", "snd", "atom", "print", "break"]
+
+parseExpr4 :: Parser Expr
+parseExpr4 = do
+  next <- try ((char '\\' >> return True) <|> return False)
+  if next
+    then do args <- parseVar `endBy` (symbol " ")
+            symbol "->"
+            expr <- parseExpr
+            return $ Lambda args expr
+    else parseExpr5
+
+parseExpr5 :: Parser Expr
+parseExpr5 = do
+  e <- parseExpr6
+  next <- lookAhead ((char '(' >> return True) <|> return False)
+  if next
+    then CallFun e <$> parseExprs
+    else return e
+
+parseExpr6 :: Parser Expr
+parseExpr6 = (IntVal <$> parseVal) <|> (Var <$> parseVar) <|> parseTuple
+
+parseVar :: Parser String
+parseVar = do
+  c <- (letter <|> char '_')
+  cs <- many (letter <|> digit <|> char '_')
+  spaces
+  return (c : cs)
+
+parseVal :: Parser Int32
+parseVal = liftA read $ many1 digit <* spaces
+
+parseTuple :: Parser Expr
+parseTuple = do
+  exprs <- parseExprs
+  return (foldr1 (BinOp Cons) exprs)
+
+parseExprs :: Parser [Expr]
+parseExprs = parens (commaSep1 parseExpr) <* spaces
 
 -- Helper functions
 
 commaSep p  = p `sepBy` (symbol ",")
 commaSep1 p = p `sepBy1` (symbol ",")
 
+parens = between (symbol "(") (symbol ")")
+
 symbol :: String -> Parser ()
 symbol s = do string s
               spaces
               return ()
 
-keywords = ["let", "in", "if", "then", "else", "fst", "snd", "atom"]
-
-parseInt :: Parser Int
-parseInt = liftA read $ many1 digit <* spaces
-
-parseInt32 :: Parser Int32
-parseInt32 = liftA read $ many1 digit <* spaces
 
 word :: Parser String
 word = many1 letter
-
-var :: Parser String
-var = do notFollowedBy $ choice $ map string keywords
-         many1 (letter <|> digit <|> char '_')
-
-parens :: Parser a -> Parser a
-parens = between (symbol "(") (symbol ")")
-
-braces :: Parser a -> Parser a
-braces = between (symbol "{") (symbol "}")
-
-brackets :: Parser a -> Parser a
-brackets = between (symbol "[") (symbol "]")
