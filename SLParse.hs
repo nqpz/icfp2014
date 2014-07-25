@@ -1,6 +1,7 @@
 -- module SLParse (parseString, parseFile, Error, parse, parseFun) where
 module SLParse where
 
+import Debug.Trace
 import Data.Char
 import Data.Int
 import Data.Either
@@ -135,7 +136,7 @@ parseExpr4 :: Parser Expr
 parseExpr4 = do
   next <- try ((char '\\' >> return True) <|> return False)
   if next
-    then do args <- parseVar `endBy` (symbol " ")
+    then do args <- parseVar `sepBy` (symbol " ")
             symbol "->"
             expr <- parseStmt
             return $ Lambda args expr
@@ -153,11 +154,16 @@ parseExpr6 :: Parser Expr
 parseExpr6 = (IntVal <$> parseVal) <|> (Var <$> parseVar) <|> parseTuple
 
 parseVar :: Parser String
-parseVar = do
+parseVar = try $ do
   c <- (letter <|> char '_')
   cs <- many (letter <|> digit <|> char '_')
-  spaces
-  return (c : cs)
+  let res = c : cs
+
+  if res `elem` keywords
+  then fail "var was keyword"
+  else spaces >> return res
+
+keywords = ["if", "then", "else", "let", "in", "fst", "snd", "atom", "break", "print"]
 
 parseVal :: Parser Int32
 parseVal = liftA read $ many1 digit <* spaces
