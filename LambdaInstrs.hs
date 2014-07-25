@@ -3,7 +3,7 @@ module LambdaInstrs where
 import Data.Int
 
 type Number    = Int32
-type Addr      = Int
+data Addr      = Abs Int | Lab String
 type EnvNum    = Int
 type EnvOffset = Int
 type EnvRef    = (EnvNum, EnvOffset)
@@ -43,4 +43,7 @@ data Instr = LDC Number      -- load constant
              -- Debug extension
            | DBUG
            | BRK
+
+             -- Our extensions
+           | LABEL String
            deriving (Show, Eq)
