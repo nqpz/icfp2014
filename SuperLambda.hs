@@ -1,9 +1,8 @@
--- hybrid between low-level and high-level
+module SuperLambda where
 
 import qualified LambdaInstrs as LI
 
-newtype Name = Name String
-newtype Arg = Arg String
+type Name = String
 
 data BinOp = Add
            | Sub
@@ -17,17 +16,18 @@ data Expr = IntVal LI.Number -- new int
           | ArrayVal Int -- new array with a length
           | Index Int Expr -- take from array
           | BinOp BinOp Expr Expr -- binary op on ints
-          | Var String -- a variable
+          | Var Name -- a variable
           | Cons Expr Expr -- create tuple
           | Car Expr -- get from tuple
           | Cdr Expr -- get second from tuple
           | FunName Name -- function pointer
           | Popped -- take from data stack
+          | IfThenElse Expr Expr Expr -- if x then y else z
+          | Let Name Expr Expr -- let x = y in z
+          | CallFun Name [Var] -- f(a, b, ...)
+          | ArraySet Arg Int Expr Expr -- arg[i] = x in y
+          | LowLevel LI.Instr Expr -- <low level instruction> in x
 
-data Instr = LIInstr LI.Instr -- base instruction
-           | IfThenElse Expr [Instr] [Instr] -- conditional
-           | Let Arg Expr -- make a variable and set its value
-           | FunDef Name [Arg] [Instr] -- a function
-           | CallFun Name [Arg] -- call a function
-           | ArraySet Arg Int Expr -- set array value
-           | Return Expr -- return value
+data Fun = FunDef Name [Var] Expr
+
+type Super = [Fun]
