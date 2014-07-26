@@ -13,8 +13,12 @@ checkint(instr) = let op   = fst instr
                   in if op == 13
                      then fst args
                      else -1
-listeq(xs, ys) = if atom xs || atom ys then xs == ys
-                 else if fst xs == fst ys then listeq(snd xs, snd ys) else 0
+listeq(xs, ys) =
+  if atom xs
+  then if atom ys
+       then xs == ys
+       else 0
+  else fst xs == fst ys && listeq(snd xs, snd ys)
 ##
 print len((0,1,2,3,4)) ;
 print map((\x -> x + 5), (0,1,2,3,4)) ;
