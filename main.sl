@@ -9,6 +9,7 @@ alive_ghost_vits(x)   = x
 alive_ghost_loc(x)    = x
 alive_ghost_dir(x)    = x
 
+
 update_world(w) =
    world_map          = fst w                                    ;
    lam_status         = fst snd w                                ;
@@ -19,7 +20,6 @@ update_world(w) =
    alive_ghost_status = filter(\g -> fst g == 0, ghost_status)   ;
    alive_ghost_loc    = map(\g -> fst snd g, alive_ghost_status) ;
    alive_ghost_dir    = map(\g -> snd snd g, alive_ghost_status) ;
-   decision           = 0                                        ;
    update_length_map(
      map_idx(0, \y row ->
        map_idx(0, \x val ->
@@ -33,7 +33,7 @@ update_world(w) =
 
 update_length_map(length_map) = 0
 
-get_tile(x, y) = nth(nth(worldmap, y), x)
+get_tile(x, y) = nth(nth(world_map, y), x)
 
 ghost_capabilities(ghost) =
   map(\instr -> checkint(instr), ghost)
