@@ -70,4 +70,3 @@ print lam_dir ;
 print min_steps((999, 1, 999, 1), 0) ;
 print nearest_pill((8,11),lam_loc, 0, -2) ;
 42
->>>>>>> aaa4992b25544f0e322794e8fe8ce4cf49d9ae12
