@@ -53,35 +53,40 @@ findVar s = findVar' 0 =<< get_frames
             Nothing -> findVar' (n+1) fs
 
 compStmt :: Stmt -> CompMonad ()
-compStmt (Print e)   = compExpr e >> tellCur DBUG
+compStmt (Print e)   = compExpr False e >> tellCur DBUG
 compStmt Break       = tellCur BRK
 compStmt (Store n e) = do
-  compExpr e
+  compExpr False e
   pos <- findVar n
   tellCur (LD pos)
 
-compExpr :: Expr -> CompMonad ()
-compExpr (IntVal n)        = tellCur (LDC n)
-compExpr (Seq s e)         = compStmt s  >> compExpr e
-compExpr (BinOp op e1 e2)  = compExpr e1 >> compExpr e2 >> compBinop op
-compExpr (UnOp op e)       = compExpr e  >> compUnop op
-compExpr (Var n)    = do
+compExpr :: Bool -> Expr -> CompMonad ()
+compExpr t (IntVal n)       = tellCur (LDC n)   >> when t (tellCur RTN)
+compExpr t (Seq s e)        = compStmt s        >> compExpr t e
+compExpr t (BinOp op e1 e2) = compExpr False e1 >> compExpr False e2 >> compBinop op >> when t (tellCur RTN)
+compExpr t (UnOp op e)      = compExpr False e  >> compUnop op >> when t (tellCur RTN)
+compExpr t (Var n)    = do
   pos <- findVar n
   tellCur (LD pos)
-compExpr (IfThenElse e0 eT eF) = do
+  when t (tellCur RTN)
+compExpr t (IfThenElse e0 eT eF) = do
   lT <- fresh_label "true"
   lF <- fresh_label "false"
   lA <- fresh_label "after"
-  compExpr e0
+  compExpr False e0
   tellCur (TSEL (Lab lT) (Lab lF))
+
   tellCur (LABEL lT)
-  compExpr eT
-  tellCur (LDC 0)
-  tellCur (TSEL (Lab lA) (Lab lA))
+  compExpr t eT
+  unless t $ do
+    tellCur (LDC 0)
+    tellCur (TSEL (Lab lA) (Lab lA))
+
   tellCur (LABEL lF)
-  compExpr eF
-  tellCur (LABEL lA)
-compExpr (Let binds e2) = do
+  compExpr t eF
+  unless t (tellCur (LABEL lA))
+
+compExpr t (Let binds e2) = do
   let (names, exprs) = unzip binds
 
   tellCur (DUM (length names))
@@ -89,17 +94,19 @@ compExpr (Let binds e2) = do
   put_frames (names : fs)
 
   label <- fresh_label "let"
-  mapM compExpr exprs
+  mapM (compExpr False) exprs
 
   tellCur (LDF (Lab label))
   tellCur (TRAP (length names))
   tellCur (LABEL label)
-  compExpr e2
-compExpr (CallFun eF eArgs) = do
-  mapM compExpr eArgs
-  compExpr eF
-  tellCur (AP (length eArgs))
-compExpr (Lambda ns e) = do
+  compExpr t e2
+compExpr t (CallFun eF eArgs) = do
+  mapM (compExpr False) eArgs
+  compExpr False eF
+  if t
+    then tellCur (TAP (length eArgs))
+    else tellCur (AP (length eArgs))
+compExpr t (Lambda ns e) = do
   label <- fresh_label "lambda"
   fs <- get_frames
 
@@ -108,17 +115,17 @@ compExpr (Lambda ns e) = do
   pass $ do
     put_frames (ns : fs)
     tellCur (LABEL label)
-    compExpr e
-    tellCur RTN
+    compExpr True e
     return ((), \(cur, later) -> ([], cur ++ later))
 
   put_frames fs
+  when t (tellCur RTN)
 
 runComp :: CompMonad () -> [Instr]
 runComp m =
   let s  = execWriterT m :: State CompState ([Instr], [Instr])
       (cur, later) = evalState s ([["world", "ghosts"]], 0)
-  in cur ++ [RTN] ++ later
+  in cur ++ later
 
 runExpr :: Expr -> [Instr]
-runExpr  = runComp . compExpr
+runExpr  = runComp . compExpr True
