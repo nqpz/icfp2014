@@ -121,7 +121,7 @@ parseExpr1 = do
 parseExpr2 :: Parser Expr
 parseExpr2 = do
   e <- parseExpr3
-  next <- try (Just <$> (oneOf "*/" <* spaces)) <|> return Nothing
+  next <- (Just <$> (oneOf "*/" <* spaces)) <|> return Nothing
   case next of
     Just '*' -> BinOp Mul e <$> parseExpr2
     Just '/' -> BinOp Div e <$> parseExpr2
@@ -150,9 +150,9 @@ parseExpr3 = do
 
 parseExpr4 :: Parser Expr
 parseExpr4 = do
-  next <- try ((char '\\' >> return True) <|> return False)
+  next <- (char '\\' >> return True) <|> return False
   if next
-    then do args <- parseVar `sepBy` (symbol " ")
+    then do args <- many parseVar
             symbol "->"
             expr <- parseStmt
             return $ Lambda args expr
