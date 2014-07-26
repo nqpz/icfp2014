@@ -32,14 +32,14 @@ map_idx(idx, f, xs) =
 map_all_helper(idx, f, left, cur, xs) =
   if atom xs
   then (f(idx, left, cur, cur), 0)
-  else (f(idx, left, cur, fst xs), map_all(idx+1, f, cur, fst xs, snd xs))
+  else (f(idx, left, cur, fst xs), map_all_helper(idx+1, f, cur, fst xs, snd xs))
 
 map_all(f, xs) =
   if atom xs
   then 0
   else if atom snd xs
        then (f(0, fst xs, fst xs, fst xs), 0)
-       else map_all_helper(0, f, fst snd xs, snd snd xs)
+       else map_all_helper(0, f, fst xs, fst xs, snd xs)
 
 map_cum(f, xs, res) =
   if atom xs
