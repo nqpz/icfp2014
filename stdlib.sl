@@ -26,8 +26,8 @@ maprev(f, xs) = mapcum(f, xs, 0)
 
 drop(xs, n) =
   if n == 0
-  then snd xs
-  else drop(xs, n - 1)
+  then xs
+  else drop(snd xs, n - 1)
 
 take(xs, n) =
   if n == 0
@@ -37,7 +37,7 @@ take(xs, n) =
 takecum(xs, n, res) =
   if n == 0
   then res
-  else takecum(snd xs, (fst xs, res))
+  else takecum(snd xs, n - 1, (fst xs, res))
 
 takerev(xs, n) = takecum(xs, n, 0)
 
@@ -108,16 +108,20 @@ nearest_pill(pos, steps, direction) =
              in (steps, snd min)
 
 ##
-print len((0,1,2,3,4,0)) ;
-print map((\x -> x + 5), (0,1,2,3,4,0)) ;
-print nth((1,2,3,4,0),3) ;
-print filter(\x -> mod(x,2) == 0, (1,2,3,4,0)) ;
-print listeq((1,2,3,4,0),(1,2,3,4,0)) ;
-print listeq((1,2,3,5,0),(1,2,3,4,0)) ;
-print get_tile(0,0) ;
-print get_tile(11,12) ;
-print get_loc(0) ;
-print get_direction(0) ;
-print min_steps((5, 1, 7, 2, 0), 0) ;
-print nearest_pill(get_loc(0), 0, -2) ;
+print takerev((0,1,2,3,4,0), 2) ;
+
+print len((0,1,2,3,4,0)) == 5 ;
+print listeq(rev((0,1,2,3,4,0)) , (4, 3, 2, 1, 0, 0)) ;
+print listeq(drop((0,1,2,3,4,0), 2) , (2, 3, 4, 0)) ;
+print listeq(take((0,1,2,3,4,0), 2) , (0, 1, 0)) ;
+print listeq(takerev((0,1,2,3,4,0), 2) , (1, 0, 0)) ;
+print listeq(map((\x -> x + 5), (0,1,2,3,4,0)), (5, 6, 7, 8, 9, 0)) ;
+print listeq(maprev((\x -> x + 5), (0,1,2,3,4,0)), (9, 8, 7, 6, 5, 0)) ;
+print nth((1,2,3,4,0),3) == 4;
+print listeq(filter(\x -> mod(x,2) == 0, (1,2,3,4,0)), (2, 4, 0)) ;
+print listeq(filterrev(\x -> mod(x,2) == 0, (1,2,3,4,0)), (4, 2, 0)) ;
+print listeq((1,2,3,4,0),(1,2,3,4,0)) == 1 ;
+print listeq((1,2,3,5,0),(1,2,3,4,0)) == 0 ;
+print elem(3, (1,2,3,5,0)) == 1 ;
+print elem(4, (1,2,3,5,0)) == 0 ;
 42
