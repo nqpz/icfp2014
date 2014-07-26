@@ -124,4 +124,10 @@ print listeq((1,2,3,4,0),(1,2,3,4,0)) == 1 ;
 print listeq((1,2,3,5,0),(1,2,3,4,0)) == 0 ;
 print elem(3, (1,2,3,5,0)) == 1 ;
 print elem(4, (1,2,3,5,0)) == 0 ;
+print get_tile(0,0) ;
+print get_tile(11,12) ;
+print get_loc(0) ;
+print get_direction(0) ;
+print min_steps((5, 1, 7, 2, 0), 0) ;
+print nearest_pill(get_loc(0), 0, -2) ;
 42
