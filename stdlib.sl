@@ -1,28 +1,46 @@
-revcum(xs, res) =
+nop(x)     = x
+max_int(x) = x
+
+libstd_init(x) =
+   max_int = 2147483647 ;
+   0
+
+rev_cum(xs, res) =
   if atom xs
   then res
-  else revcum(snd xs, (fst xs, res))
+  else rev_cum(snd xs, (fst xs, res))
 
-rev(xs) = revcum(xs, 0)
+rev(xs) = rev_cum(xs, 0)
 
-lencum(xs, res) =
+len_cum(xs, res) =
   if atom xs
   then res
-  else lencum(snd xs, res+1)
+  else len_cum(snd xs, res+1)
 
-len(xs) = lencum(xs, 0)
+len(xs) = len_cum(xs, 0)
 
 map(f, xs) =
   if atom xs
   then 0
   else (f(fst xs), map(f, snd xs))
 
-mapcum(f, xs, res) =
+map_idx(f, idx, xs) =
+  if atom xs
+  then 0
+  else (f(idx, fst xs), map_idx(f, idx+1, snd xs))
+
+map_cum(f, xs, res) =
   if atom xs
   then res
-  else mapcum(f, snd xs, (f(fst xs), res))
+  else map_cum(f, snd xs, (f(fst xs), res))
 
-maprev(f, xs) = mapcum(f, xs, 0)
+map_idx_cum(f, idx, xs, res) =
+  if atom xs
+  then res
+  else map_idx_cum(f, idx+1, snd xs, (f(idx, fst xs), res))
+
+map_rev(f, xs) = map_cum(f, xs, 0)
+map_idx_rev(f, idx, xs) = map_idx_cum(f, idx, xs, 0)
 
 drop(xs, n) =
   if n == 0
@@ -34,12 +52,12 @@ take(xs, n) =
   then 0
   else (fst xs, take(snd xs, n-1))
 
-takecum(xs, n, res) =
+take_cum(xs, n, res) =
   if n == 0
   then res
-  else takecum(snd xs, n - 1, (fst xs, res))
+  else take_cum(snd xs, n - 1, (fst xs, res))
 
-takerev(xs, n) = takecum(xs, n, 0)
+take_rev(xs, n) = take_cum(xs, n, 0)
 
 nth(xs, n) =
   if n == 0
@@ -53,12 +71,12 @@ filter(f, xs) =
        then (fst xs, filter(f, snd xs))
        else filter(f, snd xs)
 
-filtercum(f, xs, res) =
+filter_cum(f, xs, res) =
   if atom xs
   then res
-  else filtercum(f, snd xs, if f(fst xs) then (fst xs, res) else res)
+  else filter_cum(f, snd xs, if f(fst xs) then (fst xs, res) else res)
 
-filterrev(f, xs) = filtercum(f, xs, 0)
+filter_rev(f, xs) = filter_cum(f, xs, 0)
 
 mod(a, b) = a - (a/b)*b
 
@@ -69,7 +87,22 @@ elem(a, xs) =
        then 1
        else elem(a, snd xs)
 
-listeq(xs, ys) =
+eq(xs, ys) =
   if atom xs
-  then atom ys
-  else fst xs == fst ys && listeq(snd xs, snd ys)
+  then if atom ys
+       then xs == ys
+       else 0
+  else if atom ys
+       then 0
+       else eq(fst xs, fst ys) && eq(snd xs, snd ys)
+
+min_pos_cum(rs, idx, cumpos, cumval) =
+  if atom rs
+  then (cumpos, cumval)
+  else if fst rs <= cumval
+       then min_pos_cum(snd rs, idx+1, idx,    fst rs)
+       else min_pos_cum(snd rs, idx+1, cumpos, cumval)
+
+min_pos(rs) =     min_pos_cum(rs, 0, -1, max_int)
+min_idx(rs) = snd min_pos_cum(rs, 0, -1, max_int)
+min(rs)     = fst min_pos_cum(rs, 0, -1, max_int)
