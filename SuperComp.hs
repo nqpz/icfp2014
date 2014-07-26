@@ -58,7 +58,7 @@ compStmt Break       = tellCur BRK
 compStmt (Store n e) = do
   compExpr False e
   pos <- findVar n
-  tellCur (LD pos)
+  tellCur (ST pos)
 
 compExpr :: Bool -> Expr -> CompMonad ()
 compExpr t (IntVal n)       = tellCur (LDC n)   >> when t (tellCur RTN)
