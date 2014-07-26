@@ -1,0 +1,51 @@
+We went into this challenge with the spirit that we wanted to have fun by
+working on the most interesting/challenging parts. After looking at the (very
+long) specification, it seemed obvious that we wanted to create a compiler
+so we could write a path-finding algorithm for our bot and, if time permits,
+various data flow analysis algorithms for the ghost programs.
+
+Because the machine language is very functional, we created a language called
+Super Lambda (SL), which is inspired by SML but without unnecessary features
+like type checking and pattern matching. It is implemented in Haskell using
+Parsec. The source files contains the following:
+
+- Ghc.hs: (unfinished)
+    GHC instruction data types
+- ghc-in-gcc-instructions.txt:
+    binary format of ghc instructions
+- grammar.txt:
+    overview of the expression parsing in SL
+- LambdaInstrs.hs:
+    GCC instruction data types
+- LambdaMan.hs: (unfinished)
+    An almost working interpreter for GCC
+- LambdaPrint.hs:
+    Pretty printer for GCC instructions
+- Main.hs:
+    IO monad wrapper for parser+compiler+prettyprinter
+- main.sl:
+    SL source code for LambdaMan.gcc
+- README:
+    This file
+- README.md:
+    Another file
+- SLParse.hs:
+    Parser for SL
+- stdlib.sl:
+    Standard library of SL functions
+- SuperComp.hs:
+    Compiler from SL to GCC
+- SuperLambda.hs:
+    AST Data types for SL
+- test.sl:
+    Unit tests for SL (apparently it is hard to write correct software without type checking...)
+- World.hs: (unused)
+    Data types for the game world
+
+In order to use the compiler, simply run:
+ghc Main && (cat stdlib.sl; cat main.sl) | ./Main
+
+The bot itself currently disregards the ghosts' source code, and simply tries
+to score points without hitting them. To do so, we use a sort of reverse
+flood-fill, where we map over the world state and trace back from everything
+that gives points to LambdaMans current position.
