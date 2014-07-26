@@ -24,23 +24,35 @@ map(f, xs) =
   then 0
   else (f(fst xs), map(f, snd xs))
 
-map_idx(f, idx, xs) =
+map_idx(idx, f, xs) =
   if atom xs
   then 0
-  else (f(idx, fst xs), map_idx(f, idx+1, snd xs))
+  else (f(idx, fst xs), map_idx(idx+1, f, snd xs))
+
+map_all_helper(idx, f, left, cur, xs) =
+  if atom xs
+  then (f(idx, left, cur, cur), 0)
+  else (f(idx, left, cur, fst xs), map_all(idx+1, f, cur, fst xs, snd xs))
+
+map_all(f, xs) =
+  if atom xs
+  then 0
+  else if atom snd xs
+       then (f(0, fst xs, fst xs, fst xs), 0)
+       else map_all_helper(0, f, fst snd xs, snd snd xs)
 
 map_cum(f, xs, res) =
   if atom xs
   then res
   else map_cum(f, snd xs, (f(fst xs), res))
 
-map_idx_cum(f, idx, xs, res) =
+map_idx_cum(idx, f, xs, res) =
   if atom xs
   then res
-  else map_idx_cum(f, idx+1, snd xs, (f(idx, fst xs), res))
+  else map_idx_cum(idx+1, f, snd xs, (f(idx, fst xs), res))
 
 map_rev(f, xs) = map_cum(f, xs, 0)
-map_idx_rev(f, idx, xs) = map_idx_cum(f, idx, xs, 0)
+map_idx_rev(idx, f, xs) = map_idx_cum(idx, f, xs, 0)
 
 drop(xs, n) =
   if n == 0
@@ -83,7 +95,7 @@ mod(a, b) = a - (a/b)*b
 elem(a, xs) =
   if atom xs
   then 0
-  else if a == fst xs
+  else if eq(a, fst xs)
        then 1
        else elem(a, snd xs)
 

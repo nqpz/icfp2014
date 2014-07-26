@@ -1,18 +1,37 @@
-worldmap(x)        = x
-lam_status(x)      = x
-lam_loc(x)         = x
-lam_dir(x)         = x
-ghost_status(x)    = x
-fruit_status(x)    = x
+world_map(x)          = x
+lam_status(x)         = x
+lam_loc(x)            = x
+lam_dir(x)            = x
+ghost_status(x)       = x
+fruit_status(x)       = x
+alive_ghost_status(x) = x
+alive_ghost_vits(x)   = x
+alive_ghost_loc(x)    = x
+alive_ghost_dir(x)    = x
 
 update_world(w) =
-   worldmap      = fst w                  ;
-   lam_status    = fst snd w              ;
-   ghost_status  = fst snd snd w          ;
-   fruit_status  = snd snd snd w          ;
-   lam_loc       = fst snd lam_status     ;
-   lam_dir       = fst snd snd lam_status ;
-   0
+   world_map          = fst w                                    ;
+   lam_status         = fst snd w                                ;
+   lam_loc            = fst snd lam_status                       ;
+   lam_dir            = fst snd snd lam_status                   ;
+   ghost_status       = fst snd snd w                            ;
+   fruit_status       = snd snd snd w                            ;
+   alive_ghost_status = filter(\g -> fst g == 0, ghost_status)   ;
+   alive_ghost_loc    = map(\g -> fst snd g, alive_ghost_status) ;
+   alive_ghost_dir    = map(\g -> snd snd g, alive_ghost_status) ;
+   decision           = 0                                        ;
+   update_length_map(
+     map_idx(0, \y row ->
+       map_idx(0, \x val ->
+         (elem((x, y), alive_ghost_loc) - 1,
+          (val == 2) - 1,
+          (val == 3) - 1,
+          (val == 4) - 1)
+       , row)
+     , world_map)
+   )
+
+update_length_map(length_map) = 0
 
 get_tile(x, y) = nth(nth(worldmap, y), x)
 
@@ -48,11 +67,12 @@ print eq(rev((0,1,2,3,4,0)) , (4, 3, 2, 1, 0, 0)) ;
 print eq(drop((0,1,2,3,4,0), 2) , (2, 3, 4, 0)) ;
 print eq(take((0,1,2,3,4,0), 2) , (0, 1, 0)) ;
 print eq(take_rev((0,1,2,3,4,0), 2) , (1, 0, 0)) ;
+print eq(map_all(\idx left cur right -> (idx, left, cur, right), (1, 2, 3, 0)), ((0, 1, 1, 2), (1, 1, 2, 3), (2, 2, 3, 3), 0)) ;
 print eq(map((\x -> x + 5), (0,1,2,3,4,0)), (5, 6, 7, 8, 9, 0)) ;
-print eq(map_idx((\x y -> (x, y + 5)), 3, (0,1,2,3,4,0)), ((3, 5), (4, 6), (5, 7), (6, 8), (7, 9), 0)) ;
-print eq(map_idx((\x y -> (x, y + 5)), 3, (0,1,2,3,4,0)), ((3, 5), (4, 6), (5, 7), (6, 8), (7, 9), 0)) ;
+print eq(map_idx((\y x -> (x, y + 5)), 3, (0,1,2,3,4,0)), ((3, 5), (4, 6), (5, 7), (6, 8), (7, 9), 0)) ;
+print eq(map_idx((\y y -> (x, y + 5)), 3, (0,1,2,3,4,0)), ((3, 5), (4, 6), (5, 7), (6, 8), (7, 9), 0)) ;
 print eq(map_rev((\x -> x + 5), (0,1,2,3,4,0)), (9, 8, 7, 6, 5, 0)) ;
-print eq(map_idx_rev((\x y -> (x, y + 5)), 3, (0,1,2,3,4,0)), ((7, 9), (6, 8), (5, 7), (4, 6), (3, 5), 0)) ;
+print eq(map_idx_rev((\y x -> (x, y + 5)), 3, (0,1,2,3,4,0)), ((7, 9), (6, 8), (5, 7), (4, 6), (3, 5), 0)) ;
 print nth((1,2,3,4,0),3) == 4;
 print eq(filter(\x -> mod(x,2) == 0, (1,2,3,4,0)), (2, 4, 0)) ;
 print eq(filter_rev(\x -> mod(x,2) == 0, (1,2,3,4,0)), (4, 2, 0)) ;
