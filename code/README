@@ -27,8 +27,6 @@ Parsec. The source files contains the following:
     SL source code for LambdaMan.gcc
 - README:
     This file
-- README.md:
-    Another file
 - SLParse.hs:
     Parser for SL
 - stdlib.sl:
@@ -48,4 +46,5 @@ ghc Main && (cat stdlib.sl; cat main.sl) | ./Main
 The bot itself currently disregards the ghosts' source code, and simply tries
 to score points without hitting them. To do so, we use a sort of reverse
 flood-fill, where we map over the world state and trace back from everything
-that gives points to LambdaMans current position.
+that gives points to LambdaMans current position. We did not finish the algorithm
+in time, so the bot currently does nothing.
