@@ -11,8 +11,7 @@ run = putStrLn . printer . runExpr
 runP = putStrLn . printer. fixLabels . runExpr
 
 main :: IO ()
-main = do args <- getArgs
-          prg <- parseFile (head args)
-          case prg of
+main = do s <- getContents
+          case parseString s of
             Left e    -> putStrLn $ show e
             Right prg -> runP prg
