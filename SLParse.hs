@@ -78,18 +78,34 @@ parseStmt1 = do
 
 parseExpr :: Parser Expr
 parseExpr = do
+  e <- parseExpr0
+  next <- try (symbol "||" >> return True) <|> return False
+  if next
+    then IfThenElse e (IntVal 1) <$> parseExpr
+    else return e
+
+parseExpr0 :: Parser Expr
+parseExpr0 = do
+  e <- parseExpr0_5
+  next <- try (symbol "&&" >> return True) <|> return False
+  if next
+    then IfThenElse e <$> parseExpr0 <*> return (IntVal 0)
+    else return e
+
+parseExpr0_5 :: Parser Expr
+parseExpr0_5 = do
   e <- parseExpr1
   next <- choice' ["==", "<=", ">=", "=<", "=>", "!=", ">", "<"]
   case next of
-    Just "<"  -> BinOp Gt  <$> parseExpr <*> return e
-    Just ">"  -> BinOp Gt  <$> return e  <*> parseExpr
-    Just "<=" -> BinOp Gte <$> parseExpr <*> return e
-    Just "=<" -> BinOp Gte <$> parseExpr <*> return e
-    Just ">=" -> BinOp Gte <$> return e  <*> parseExpr
-    Just "=>" -> BinOp Gte <$> return e  <*> parseExpr
-    Just "==" -> BinOp Eq  <$> return e  <*> parseExpr
+    Just "<"  -> BinOp Gt  <$> parseExpr0_5 <*> return e
+    Just ">"  -> BinOp Gt  <$> return e     <*> parseExpr0_5
+    Just "<=" -> BinOp Gte <$> parseExpr0_5 <*> return e
+    Just "=<" -> BinOp Gte <$> parseExpr0_5 <*> return e
+    Just ">=" -> BinOp Gte <$> return e     <*> parseExpr0_5
+    Just "=>" -> BinOp Gte <$> return e     <*> parseExpr0_5
+    Just "==" -> BinOp Eq  <$> return e     <*> parseExpr0_5
     Just "!=" -> do
-      e1 <- parseExpr
+      e1 <- parseExpr0_5
       return $ BinOp Eq (IntVal 0) (BinOp Eq e e1)
     Nothing  -> return e
 
